@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <apikit:config name="Router" raml="book.raml" consoleEnabled="true" consolePath="console" keepRamlBaseUri="false" doc:name="Router">
+        <apikit:flow-mapping resource="/book" action="get" flow-ref="obtenerFlow"/>
+        <apikit:flow-mapping resource="/book" action="post" content-type="application/json" flow-ref="bookFlow"/>
+        <apikit:flow-mapping resource="/book/{bookId}" action="delete" flow-ref="borrarIdFlow"/>
+        <apikit:flow-mapping resource="/book/{bookId}" action="put" content-type="application/json" flow-ref="modiBookIdFlow"/>
+    </apikit:config>
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="3031" doc:name="HTTP Listener Configuration"/>
+    <spring:beans>
+        <spring:bean id="libro" name="libro" class="java.util.HashMap"/>
+    </spring:beans>
+    <flow name="booksExcercise">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/ejercicio/*" doc:name="HTTP"/>
+  <apikit:router config-ref="Router" doc:name="APIkit Router"/> 
+        <exception-strategy ref="exceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="bookFlow">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Expression"><![CDATA[Object bookInstance = new com.mule.support.Book();
+bookInstance.setTitle(payload.get('title'));
+bookInstance.setAuthor(payload.get('author'));
+bookInstance.setPages(payload.get('pages'));
+bookInstance.setId(payload.get('id'));
+app.registry['libro'].put(payload.get('id'),bookInstance);]]></expression-component>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="obtenerFlow">
+        <set-payload value="#[app.registry['libro'].values()]" doc:name="Set Payload"/>
+        <logger message="#[app]" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+(payload filter $.title == inboundProperties."http.query.params".title) when inboundProperties."http.query.params".title != null otherwise payload
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="modiBookIdFlow">
+        <set-variable variableName="dataId" value="#[app.registry['libro'].get(Integer.parseInt(message.inboundProperties['http.uri.params'].get('bookId')))]" doc:name="Variable"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	"id": flowVars.dataId.id,
+	"author":payload.author,
+	"pages":payload.pages ,
+	"title":payload.title	
+} as :object {class : "com.mule.support.Book"}
+]]></dw:set-payload>
+        </dw:transform-message>
+        <expression-component doc:name="Expression"><![CDATA[app.registry['libro'].put(payload.getId(),payload);]]></expression-component>
+    </flow>
+    <flow name="borrarIdFlow">
+        <choice doc:name="Choice">
+            <when expression="#[app.registry['libro'].containsKey(Integer.parseInt(message.inboundProperties['http.uri.params'].get('bookId')))]">
+                <expression-component doc:name="Expression"><![CDATA[app.registry['libro'].remove(Integer.parseInt(message.inboundProperties['http.uri.params'].get('bookId')));]]></expression-component>
+            </when>
+            <otherwise>
+                <set-property propertyName="http.status" value="400" doc:name="Property"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

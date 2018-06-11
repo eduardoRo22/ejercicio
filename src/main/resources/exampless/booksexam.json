@@ -1,0 +1,24 @@
+{
+        "title": "Everyday Italian",
+        "author": "Giada De Laurentiis",
+        "pages": "205",
+        "id": "30"
+      },
+      {
+        "title": "Harry Potter"
+        "author": "J K. Rowling",
+        "pages" : "25",
+        "id": "29"
+      },
+      {
+        "title": "XQuery Kick Start"
+        "author": "Vaidyanathan Nagarajan"
+        "pages": "203",
+        "id": "49"
+      },
+      {
+        "title": "Learning XML",
+        "author": "Erik T. Ray",
+        "pages": "2",
+        "id": "39"
+      }

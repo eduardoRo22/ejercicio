@@ -1,0 +1,43 @@
+#%RAML 0.8
+title: Books API
+baseUri: http://localhost:3031/book
+version : 1.0
+/book:
+  displayName: libros
+  get:
+    description: libros habilitados.
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include exampless/booksexam.json
+            schema: !include schemass/bookSchemaOutput.json
+  post:
+    description: agregar un nuevo libro
+    body:
+      application/json:
+            example: !include exampless/bookpost.json
+            schema: !include schemass/bookkld-schema-input.json        
+    responses:
+      200:
+        description: |
+          El libro se creo correctamente.
+          
+  /{bookId}:
+    displayName: Book
+    put:
+      description: Updates book information such as author and amount of pages.
+      body:
+        application/json:
+          example: !include exampless/bookput.json
+          schema: !include schemass/bookId-schema-input.json
+      responses:
+        200:
+          description: |
+            libro modificado exitosamente
+    delete:
+      description: elimina los registro por id
+      responses:
+        204:
+          description: |
+             libro eliminado bien.
